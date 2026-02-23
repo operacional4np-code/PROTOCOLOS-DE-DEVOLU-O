@@ -108,4 +108,5 @@ def gerar_pdf(dados_lista):
         c.drawCentredString(largura/2 + 40, p_y - 195, "Nome legível e RG")
         
         c.setFont("Helvetica", 10)
-        c.drawString(m_x +
+        c.drawString(m_x +)
+    
