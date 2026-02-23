@@ -92,4 +92,67 @@ def gerar_pdf(dados_lista):
         c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
         
         # Nº PROTOCOLO CLIENTE (1ª COLUNA)
-        c.setFont("
+        c.setFont("Helvetica", 10)
+        c.drawString(largura - 310, p_y - 145, "Nº PROTOCOLO CLIENTE:")
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(largura - 175, p_y - 144, protocolo_fonte)
+        c.line(largura - 180, p_y - 147, largura - 40, p_y - 147)
+        
+        # Assinaturas
+        c.setFont("Helvetica", 10)
+        c.drawString(m_x + 5, p_y - 185, "DADOS DO RECEBEDOR:")
+        c.line(m_x + 125, p_y - 187, largura - 40, p_y - 187)
+        c.setFont("Helvetica", 7)
+        c.drawCentredString(largura/2 + 40, p_y - 195, "Nome legível e RG")
+        
+        c.setFont("Helvetica", 10)
+        c.drawString(m_x + 5, p_y - 230, "ASSINATURA:")
+        c.line(m_x + 80, p_y - 232, largura - 40, p_y - 232)
+
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+# --- INTERFACE PRINCIPAL ---
+def main():
+    st.title("📦 Gerador de Protocolos")
+    txt = st.text_area("Insira as NFs abaixo:", height=150)
+
+    if st.button("Gerar PDF"):
+        if txt:
+            try:
+                S_ID = "1f_NDUAezh4g0ztyHVUO_t33QxGai9TYcWOD-IAoPcuE"
+                URL = f"https://docs.google.com/spreadsheets/d/{S_ID}/export?format=csv&gid=0"
+                
+                nfs_entrada = [n.strip() for n in re.split(r'[,\s\n]+', txt) if n.strip()]
+                df = pd.read_csv(URL)
+                
+                # Mapeamento e Tipagem
+                df.columns.values[0] = 'PROTOCOLO_FONTE'
+                if len(df.columns) >= 9:
+                    df.columns.values[8] = 'DESTINO'
+                
+                # Garante que as colunas de busca sejam tratadas como strings limpas
+                df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
+                df['PROTOCOLO_FONTE'] = df['PROTOCOLO_FONTE'].astype(str).str.strip()
+                
+                res = df[df['NOTA FISCAL'].isin(nfs_entrada)].to_dict('records')
+                
+                if res:
+                    pdf_file = gerar_pdf(res)
+                    st.success(f"{len(res)} protocolos gerados!")
+                    st.download_button(
+                        label="📥 Baixar PDF",
+                        data=pdf_file,
+                        file_name="protocolos.pdf",
+                        mime="application/pdf"
+                    )
+                else:
+                    st.warning("Nenhuma NF encontrada.")
+            except Exception as e:
+                st.error(f"Erro: {e}")
+        else:
+            st.info("Insira os números das Notas Fiscais para continuar.")
+
+if __name__ == "__main__":
+    main()
