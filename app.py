@@ -1,4 +1,8 @@
 import streamlit as st
+
+# 1. ISSO DEVE SER A PRIMEIRA LINHA DO STREAMLIT NO CÓDIGO
+st.set_page_config(page_title="Sistema New Post", page_icon="📦")
+
 import pandas as pd
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -36,7 +40,7 @@ def gerar_pdf(dados_lista):
         c.setLineWidth(1.5)
         c.rect(margem_x, pos_y - altura_bloco, largura - 60, altura_bloco)
         
-        # Linhas horizontais e verticais do cabeçalho
+        # Linhas do cabeçalho
         c.setLineWidth(1)
         c.line(margem_x, pos_y - 45, largura - 30, pos_y - 45) 
         c.line(largura - 160, pos_y, largura - 160, pos_y - 45) 
@@ -79,13 +83,12 @@ def gerar_pdf(dados_lista):
         c.drawString(margem_x + 95, pos_y - 104, str(dados.get('NOTA FISCAL', '')))
         c.line(margem_x + 90, pos_y - 107, largura - 320, pos_y - 107)
         
-        c.setFont("Helvetica", 10)
         c.drawString(largura - 310, pos_y - 105, "Nº CTE:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(largura - 265, pos_y - 104, str(dados.get('CTE', '')))
         c.line(largura - 270, pos_y - 107, largura - 40, pos_y - 107)
         
-        # Data e Pedido (N. PROTOCOLO CLIENTE)
+        # Data e Pedido
         data_atual = datetime.now().strftime("%d/%m/%Y")
         c.setFont("Helvetica", 10)
         c.drawString(margem_x + 5, pos_y - 145, "DATA:")
@@ -98,19 +101,3 @@ def gerar_pdf(dados_lista):
         c.line(largura - 180, pos_y - 147, largura - 40, pos_y - 147)
         
         # Rodapé e Assinaturas
-        c.setFont("Helvetica", 10)
-        c.drawString(margem_x + 5, pos_y - 185, "DADOS DO RECEBEDOR:")
-        c.line(margem_x + 125, pos_y - 187, largura - 40, pos_y - 187)
-        c.setFont("Helvetica", 7)
-        c.drawCentredString(largura/2 + 40, pos_y - 195, "Nome legível e RG")
-        
-        c.setFont("Helvetica", 10)
-        c.drawString(margem_x + 5, pos_y - 230, "ASSINATURA:")
-        c.line(margem_x + 80, pos_y - 232, largura - 40, pos_y - 232)
-
-    c.save()
-    buffer.seek(0)
-    return buffer
-
-# --- INTERFACE STREAMLIT ---
-st.set_page_
