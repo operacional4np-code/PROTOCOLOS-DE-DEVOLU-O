@@ -17,13 +17,12 @@ def gerar_pdf(dados_lista):
     c = canvas.Canvas(buffer, pagesize=A4)
     largura, altura = A4
     
-    # Parâmetros de layout
     margem_x = 30
     altura_bloco = 255
     espacamento = 15
     y_inicial = altura - 30
     
-    # Caminho do logo (deve estar na mesma pasta no GitHub)
+    # Nome do arquivo de logo que deve estar no GitHub
     logo_path = "logo.png.jpeg" 
 
     for i, dados in enumerate(dados_lista):
@@ -37,31 +36,34 @@ def gerar_pdf(dados_lista):
         c.setLineWidth(1.5)
         c.rect(margem_x, pos_y - altura_bloco, largura - 60, altura_bloco)
         
-        # Linhas do cabeçalho
+        # Linhas horizontais e verticais do cabeçalho
         c.setLineWidth(1)
         c.line(margem_x, pos_y - 45, largura - 30, pos_y - 45) 
         c.line(largura - 160, pos_y, largura - 160, pos_y - 45) 
         
-        # --- INSERÇÃO DO LOGO ---
+        # --- LOGO ---
         if os.path.exists(logo_path):
-            logo = ImageReader(logo_path)
-            # Desenha a imagem (x, y, largura, altura)
-            c.drawImage(logo, margem_x + 5, pos_y - 40, width=70, height=35, preserveAspectRatio=True, mask='auto')
+            try:
+                logo = ImageReader(logo_path)
+                c.drawImage(logo, margem_x + 5, pos_y - 40, width=65, height=35, preserveAspectRatio=True, mask='auto')
+            except:
+                c.setFont("Helvetica-Bold", 12)
+                c.drawString(margem_x + 10, pos_y - 30, "NEW POST")
         else:
-            # Caso o logo não seja encontrado, escreve o texto para não ficar vazio
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(margem_x + 8, pos_y - 28, "NEW POST")
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(margem_x + 10, pos_y - 30, "NEW POST")
         
-        # Título e Protocolo
+        # Título Central
         c.setFont("Helvetica-Bold", 13)
         c.drawCentredString(largura/2 + 20, pos_y - 25, "PROTOCOLO DE DEVOLUÇÃO")
         
+        # Protocolo MG
         c.setFont("Helvetica", 9)
         c.drawString(largura - 155, pos_y - 15, "PROTOCOLO Nº:")
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(largura - 130, pos_y - 32, f"MG-{dados.get('PROTOCOLO', '')}")
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(largura - 130, pos_y - 32, f"MG-{str(dados.get('PROTOCOLO', ''))}")
         
-        # Preenchimento de dados sobre as linhas
+        # --- CAMPOS DE DADOS ---
         c.setFont("Helvetica", 10)
         
         # Cliente
@@ -77,12 +79,13 @@ def gerar_pdf(dados_lista):
         c.drawString(margem_x + 95, pos_y - 104, str(dados.get('NOTA FISCAL', '')))
         c.line(margem_x + 90, pos_y - 107, largura - 320, pos_y - 107)
         
+        c.setFont("Helvetica", 10)
         c.drawString(largura - 310, pos_y - 105, "Nº CTE:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(largura - 265, pos_y - 104, str(dados.get('CTE', '')))
         c.line(largura - 270, pos_y - 107, largura - 40, pos_y - 107)
         
-        # Data e Pedido
+        # Data e Pedido (N. PROTOCOLO CLIENTE)
         data_atual = datetime.now().strftime("%d/%m/%Y")
         c.setFont("Helvetica", 10)
         c.drawString(margem_x + 5, pos_y - 145, "DATA:")
@@ -94,7 +97,7 @@ def gerar_pdf(dados_lista):
         c.drawString(largura - 175, pos_y - 144, str(dados.get('PEDIDO', '')))
         c.line(largura - 180, pos_y - 147, largura - 40, pos_y - 147)
         
-        # Rodapé
+        # Rodapé e Assinaturas
         c.setFont("Helvetica", 10)
         c.drawString(margem_x + 5, pos_y - 185, "DADOS DO RECEBEDOR:")
         c.line(margem_x + 125, pos_y - 187, largura - 40, pos_y - 187)
@@ -103,4 +106,11 @@ def gerar_pdf(dados_lista):
         
         c.setFont("Helvetica", 10)
         c.drawString(margem_x + 5, pos_y - 230, "ASSINATURA:")
-        c.line(margem_x
+        c.line(margem_x + 80, pos_y - 232, largura - 40, pos_y - 232)
+
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+# --- INTERFACE STREAMLIT ---
+st.set_page_
