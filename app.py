@@ -23,7 +23,7 @@ def gerar_pdf(dados_lista):
     y_ini = altura - 30
     
     caminhos_possiveis = ["logo.png.jpeg", "logo.png", "logo.jpeg", "logo.jpg"]
-    logo_path = next((c for c in caminhos_possiveis if os.path.exists(c)), None)
+    logo_path = next((f for f in caminhos_possiveis if os.path.exists(f)), None)
 
     for i, dados in enumerate(dados_lista):
         if i > 0 and i % 3 == 0:
@@ -53,7 +53,7 @@ def gerar_pdf(dados_lista):
         
         # --- LÓGICA DE PREFIXO ---
         destino = str(dados.get('DESTINO', '')).upper()
-        # Dado da 1ª coluna da planilha
+        # Pegamos o valor da 1ª coluna mapeada
         protocolo_fonte = str(dados.get('PROTOCOLO_FONTE', ''))
         
         if "CABO DE SANTO AGOSTINHO" in destino:
@@ -67,7 +67,7 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica", 9)
         c.drawString(largura - 155, p_y - 15, "PROTOCOLO Nº:")
         
-        # PROTOCOLO Nº permanece apenas com o prefixo (em branco para preenchimento manual)
+        # Prefixo no topo (Número em branco conforme solicitado)
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"{prefixo}") 
         
@@ -78,34 +78,21 @@ def gerar_pdf(dados_lista):
         c.drawString(m_x + 60, p_y - 64, str(dados.get('NOME', '')))
         c.line(m_x + 55, p_y - 67, largura - 40, p_y - 67)
         
+        c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 105, "Nº NOTA FISCAL:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(m_x + 95, p_y - 104, str(dados.get('NOTA FISCAL', '')))
         c.line(m_x + 90, p_y - 107, largura - 320, p_y - 107)
         
+        c.setFont("Helvetica", 10)
         c.drawString(largura - 310, p_y - 105, "Nº CTE:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(largura - 265, p_y - 104, str(dados.get('CTE', '')))
         c.line(largura - 270, p_y - 107, largura - 40, p_y - 107)
         
         data_at = datetime.now().strftime("%d/%m/%Y")
+        c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 145, "DATA:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(m_x + 45, p_y - 144, data_at)
-        c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
-        
-        # Nº PROTOCOLO CLIENTE exibe o resultado da PRIMEIRA COLUNA
-        c.drawString(largura - 310, p_y - 145, "Nº PROTOCOLO CLIENTE:")
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(largura - 175, p_y - 144, protocolo_fonte)
-        c.line(largura - 180, p_y - 147, largura - 40, p_y - 147)
-        
-        # Assinaturas
-        c.setFont("Helvetica", 10)
-        c.drawString(m_x + 5, p_y - 185, "DADOS DO RECEBEDOR:")
-        c.line(m_x + 125, p_y - 187, largura - 40, p_y - 187)
-        c.setFont("Helvetica", 7)
-        c.drawCentredString(largura/2 + 40, p_y - 195, "Nome legível e RG")
-        
-        c.setFont("Helvetica", 10)
-        c.drawString(
+        c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147
