@@ -63,6 +63,7 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica", 9)
         c.drawString(largura - 155, p_y - 15, "PROTOCOLO Nº:")
         
+        # PROTOCOLO Nº permanece apenas com o prefixo
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"{prefixo}") 
         
@@ -84,11 +85,10 @@ def gerar_pdf(dados_lista):
         c.drawString(largura - 265, p_y - 104, str(dados.get('CTE', '')))
         c.line(largura - 270, p_y - 107, largura - 40, p_y - 107)
         
-        data_at = datetime.now().strftime("%d/%m/%Y")
+        # --- AJUSTE: CAMPO DATA EM BRANCO ---
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 145, "DATA:")
-        c.setFont("Helvetica-Bold", 10)
-        c.drawString(m_x + 45, p_y - 144, data_at)
+        # Removido: data_at e drawString da data automática
         c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
         
         # Nº PROTOCOLO CLIENTE (1ª COLUNA)
@@ -127,12 +127,10 @@ def main():
                 nfs_entrada = [n.strip() for n in re.split(r'[,\s\n]+', txt) if n.strip()]
                 df = pd.read_csv(URL)
                 
-                # Mapeamento e Tipagem
                 df.columns.values[0] = 'PROTOCOLO_FONTE'
                 if len(df.columns) >= 9:
                     df.columns.values[8] = 'DESTINO'
                 
-                # Garante que as colunas de busca sejam tratadas como strings limpas
                 df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
                 df['PROTOCOLO_FONTE'] = df['PROTOCOLO_FONTE'].astype(str).str.strip()
                 
