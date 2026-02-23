@@ -8,13 +8,10 @@ from datetime import datetime
 import re
 import os
 
-# 1. Configuração inicial obrigatória
+# 1. Configuração inicial (Deve ser a primeira chamada Streamlit)
 st.set_page_config(page_title="Sistema New Post", page_icon="📦")
 
-# --- CONFIGURAÇÃO DA PLANILHA ---
-S_ID = "1f_NDUAezh4g0ztyHVUO_t33QxGai9TYcWOD-IAoPcuE"
-URL = f"https://docs.google.com/spreadsheets/d/{S_ID}/export?format=csv&gid=0"
-
+# --- FUNÇÃO DE GERAÇÃO DE PDF ---
 def gerar_pdf(dados_lista):
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
@@ -33,14 +30,12 @@ def gerar_pdf(dados_lista):
             
         p_y = y_ini - ((i % 3) * (h_bloco + espac))
         
-        # Molduras
         c.setLineWidth(1.5)
         c.rect(m_x, p_y - h_bloco, largura - 60, h_bloco)
         c.setLineWidth(1)
         c.line(m_x, p_y - 45, largura - 30, p_y - 45) 
         c.line(largura - 160, p_y, largura - 160, p_y - 45) 
         
-        # Inserção do Logo
         if os.path.exists(logo_path):
             try:
                 img = ImageReader(logo_path)
@@ -52,7 +47,6 @@ def gerar_pdf(dados_lista):
             c.setFont("Helvetica-Bold", 12)
             c.drawString(m_x + 10, p_y - 30, "NEW POST")
         
-        # Cabeçalho
         c.setFont("Helvetica-Bold", 13)
         c.drawCentredString(largura/2 + 20, p_y - 25, "PROTOCOLO DE DEVOLUÇÃO")
         c.setFont("Helvetica", 9)
@@ -60,27 +54,23 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"MG-{str(dados.get('PROTOCOLO', ''))}")
         
-        # Dados do Formulário
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 65, "CLIENTE:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(m_x + 60, p_y - 64, str(dados.get('NOME', '')))
         c.line(m_x + 55, p_y - 67, largura - 40, p_y - 67)
         
-        c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 105, "Nº NOTA FISCAL:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(m_x + 95, p_y - 104, str(dados.get('NOTA FISCAL', '')))
         c.line(m_x + 90, p_y - 107, largura - 320, p_y - 107)
         
-        c.setFont("Helvetica", 10)
         c.drawString(largura - 310, p_y - 105, "Nº CTE:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(largura - 265, p_y - 104, str(dados.get('CTE', '')))
         c.line(largura - 270, p_y - 107, largura - 40, p_y - 107)
         
         data_at = datetime.now().strftime("%d/%m/%Y")
-        c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 145, "DATA:")
         c.drawString(m_x + 45, p_y - 144, data_at)
         c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
@@ -90,8 +80,6 @@ def gerar_pdf(dados_lista):
         c.drawString(largura - 175, p_y - 144, str(dados.get('PEDIDO', '')))
         c.line(largura - 180, p_y - 147, largura - 40, p_y - 147)
         
-        # Rodapé e Assinaturas
-        c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 185, "DADOS DO RECEBEDOR:")
         c.line(m_x + 125, p_y - 187, largura - 40, p_y - 187)
         c.setFont("Helvetica", 7)
@@ -99,5 +87,38 @@ def gerar_pdf(dados_lista):
         
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 230, "ASSINATURA:")
-        c.line(m_x + 80, p_y - 23)
-main()
+        c.line(m_x + 80, p_y - 232, largura - 40, p_y - 232)
+
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+# --- LOGICA DA INTERFACE (LINEAR) ---
+st.title("📦 Gerador de Protocolos")
+st.write("Digite as NFs abaixo (separadas por vírgula ou espaço):")
+
+txt = st.text_area("Notas Fiscais:", height=150)
+
+if st.button("Gerar PDF"):
+    if txt:
+        try:
+            # Configurações da Planilha
+            S_ID = "1f_NDUAezh4g0ztyHVUO_t33QxGai9TYcWOD-IAoPcuE"
+            URL = f"https://docs.google.com/spreadsheets/d/{S_ID}/export?format=csv&gid=0"
+            
+            # Processamento
+            nfs = [n.strip() for n in re.split(r'[,\s\n]+', txt) if n.strip()]
+            df = pd.read_csv(URL)
+            df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
+            res = df[df['NOTA FISCAL'].isin(nfs)].to_dict('records')
+            
+            if res:
+                pdf = gerar_pdf(res)
+                st.success(f"{len(res)} protocolos encontrados!")
+                st.download_button("📥 Baixar PDF", pdf, "protocolos.pdf", "application/pdf")
+            else:
+                st.error("Nenhuma NF encontrada na planilha.")
+        except Exception as e:
+            st.error(f"Erro técnico: {e}")
+    else:
+        st.warning("Por favor, digite uma NF.")
