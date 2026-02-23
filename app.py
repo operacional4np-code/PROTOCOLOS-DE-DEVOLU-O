@@ -4,9 +4,9 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import io
 from datetime import datetime
+import re
 
 # --- CONFIGURAÇÃO DA PLANILHA ---
-# Substituímos o link de edição pelo link de exportação direta para CSV
 SHEET_ID = "1f_NDUAezh4g0ztyHVUO_t33QxGai9TYcWOD-IAoPcuE"
 SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid=0"
 
@@ -15,102 +15,125 @@ def gerar_pdf(dados_lista):
     c = canvas.Canvas(buffer, pagesize=A4)
     largura, altura = A4
     
-    # Configurações de layout (ajustado para 3 vias por página)
+    # Parâmetros de layout para bater com a imagem
     margem_x = 30
-    altura_bloco = 250
-    espacamento = 20
-    y_inicial = altura - 40
+    altura_bloco = 255
+    espacamento = 15
+    y_inicial = altura - 30
     
     for i, dados in enumerate(dados_lista):
+        # Gerencia nova página a cada 3 protocolos
         if i > 0 and i % 3 == 0:
-            c.showPage() # Cria uma nova página a cada 3 protocolos
-            y_inicial = altura - 40
+            c.showPage()
+            y_inicial = altura - 30
             
         pos_y = y_inicial - ((i % 3) * (altura_bloco + espacamento))
         
-        # Desenho da moldura
-        c.setLineWidth(1)
+        # 1. Moldura externa grossa
+        c.setLineWidth(1.5)
         c.rect(margem_x, pos_y - altura_bloco, largura - 60, altura_bloco)
         
-        # Cabeçalho
-        c.setFont("Helvetica-Bold", 12)
-        c.drawString(margem_x + 10, pos_y - 25, "NEW POST")
+        # 2. Cabeçalho (Linhas horizontais e verticais)
+        c.setLineWidth(1)
+        c.line(margem_x, pos_y - 45, largura - 30, pos_y - 45) # Linha horizontal do topo
+        c.line(largura - 160, pos_y, largura - 160, pos_y - 45) # Linha vertical do protocolo
+        
+        # Logo e Títulos
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(margem_x + 8, pos_y - 28, "new post") 
+        
+        c.setFont("Helvetica-Bold", 13)
         c.drawCentredString(largura/2, pos_y - 25, "PROTOCOLO DE DEVOLUÇÃO")
         
         c.setFont("Helvetica", 9)
-        c.drawString(largura - 150, pos_y - 15, "PROTOCOLO Nº:")
-        c.setFont("Helvetica-Bold", 11)
-        c.drawString(largura - 150, pos_y - 30, f"MG-{dados.get('PROTOCOLO', '---')}")
+        c.drawString(largura - 155, pos_y - 15, "PROTOCOLO Nº:")
+        c.setFont("Helvetica-Bold", 12)
+        c.drawString(largura - 130, pos_y - 32, f"MG-{dados.get('PROTOCOLO', '')}")
         
-        # Linhas de dados preenchidas automaticamente
+        # 3. Campos de Dados (Posicionados exatamente sobre as linhas da imagem)
         c.setFont("Helvetica", 10)
         
         # Cliente
-        c.drawString(margem_x + 10, pos_y - 60, f"CLIENTE: {dados.get('NOME', '')}")
-        c.line(margem_x + 60, pos_y - 62, largura - 40, pos_y - 62)
+        c.drawString(margem_x + 5, pos_y - 65, "CLIENTE:")
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(margem_x + 60, pos_y - 64, str(dados.get('NOME', '')))
+        c.line(margem_x + 55, pos_y - 67, largura - 40, pos_y - 67) # Linha do Cliente
         
         # NF e CTE
-        c.drawString(margem_x + 10, pos_y - 100, f"Nº NOTA FISCAL: {dados.get('NOTA FISCAL', '')}")
-        c.line(margem_x + 95, pos_y - 102, largura - 300, pos_y - 102)
-        
-        c.drawString(largura - 290, pos_y - 100, f"Nº CTE: {dados.get('CTE', '')}")
-        c.line(largura - 250, pos_y - 102, largura - 40, pos_y - 102)
-        
-        # Data e Pedido
-        data_str = datetime.now().strftime("%d/%m/%Y")
-        c.drawString(margem_x + 10, pos_y - 140, f"DATA: {data_str}")
-        c.line(margem_x + 45, pos_y - 142, largura - 300, pos_y - 142)
-        
-        c.drawString(largura - 290, pos_y - 140, f"Nº PEDIDO: {dados.get('PEDIDO', '')}")
-        c.line(largura - 235, pos_y - 142, largura - 40, pos_y - 142)
-        
-        # Assinaturas (conforme seu modelo)
-        c.drawString(margem_x + 10, pos_y - 180, "DADOS DO RECEBEDOR:")
-        c.line(margem_x + 130, pos_y - 182, largura - 40, pos_y - 182)
-        c.setFont("Helvetica", 7)
-        c.drawCentredString(largura/2 + 50, pos_y - 190, "Nome legível e RG")
+        c.setFont("Helvetica", 10)
+        c.drawString(margem_x + 5, pos_y - 105, "Nº NOTA FISCAL:")
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(margem_x + 95, pos_y - 104, str(dados.get('NOTA FISCAL', '')))
+        c.line(margem_x + 90, pos_y - 107, largura - 320, pos_y - 107)
         
         c.setFont("Helvetica", 10)
-        c.drawString(margem_x + 10, pos_y - 220, "ASSINATURA:")
-        c.line(margem_x + 85, pos_y - 222, largura - 40, pos_y - 222)
+        c.drawString(largura - 310, pos_y - 105, "Nº CTE:")
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(largura - 265, pos_y - 104, str(dados.get('CTE', '')))
+        c.line(largura - 270, pos_y - 107, largura - 40, pos_y - 107)
+        
+        # Data e Protocolo Cliente (Pedido)
+        c.setFont("Helvetica", 10)
+        data_atual = datetime.now().strftime("%d/%m/%Y")
+        c.drawString(margem_x + 5, pos_y - 145, "DATA:")
+        c.drawString(margem_x + 45, pos_y - 144, data_atual)
+        c.line(margem_x + 40, pos_y - 147, largura - 320, pos_y - 147)
+        
+        c.drawString(largura - 310, pos_y - 145, "Nº PROTOCOLO CLIENTE:")
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(largura - 175, pos_y - 144, str(dados.get('PEDIDO', '')))
+        c.line(largura - 180, pos_y - 147, largura - 40, pos_y - 147)
+        
+        # 4. Rodapé de Assinatura
+        c.setFont("Helvetica", 10)
+        c.drawString(margem_x + 5, pos_y - 185, "DADOS DO RECEBEDOR:")
+        c.line(margem_x + 125, pos_y - 187, largura - 40, pos_y - 187)
+        c.setFont("Helvetica", 7)
+        c.drawCentredString(largura/2 + 40, pos_y - 195, "Nome legível e RG")
+        
+        c.setFont("Helvetica", 10)
+        c.drawString(margem_x + 5, pos_y - 230, "ASSINATURA:")
+        c.line(margem_x + 80, pos_y - 232, largura - 40, pos_y - 232)
 
     c.save()
     buffer.seek(0)
     return buffer
 
-# --- INTERFACE STREAMLIT ---
-st.set_page_config(page_title="Sistema New Post", page_icon="📦")
+# --- INTERFACE ---
+st.set_page_config(page_title="Expedição New Post", page_icon="📝")
 
-st.title("📦 Gerador de Protocolos")
-st.info("Insira a Nota Fiscal abaixo. O sistema buscará os dados na planilha automaticamente.")
+st.title("📋 Gerador de Protocolos Múltiplos")
+st.write("Busque várias NFs de uma vez separando-as por **vírgula** ou **espaço**.")
 
-nf_input = st.text_input("Digite o número da Nota Fiscal:")
+# Input melhorado
+entrada = st.text_area("Insira as Notas Fiscais:", placeholder="Ex: 1542, 1890, 2100")
 
-if nf_input:
-    try:
-        # Lendo a planilha do Google Sheets via Pandas
-        df = pd.read_csv(SHEET_URL)
-        
-        # Limpeza de dados (converte tudo para string para evitar erros de busca)
-        df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
-        
-        # Busca a NF
-        resultado = df[df['NOTA FISCAL'] == nf_input.strip()]
-        
-        if not resultado.empty:
-            dados_encontrados = resultado.to_dict('records')
-            pdf = gerar_pdf(dados_encontrados)
+if st.button("Gerar Todos os Protocolos"):
+    if entrada:
+        try:
+            # 1. Limpeza do Input (converte "123, 456 789" em ['123', '456', '789'])
+            lista_nfs = re.split(r'[,\s]+', entrada.strip())
             
-            st.success(f"✅ Protocolo para NF {nf_input} gerado com sucesso!")
+            # 2. Carregar Planilha
+            df = pd.read_csv(SHEET_URL)
+            df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
             
-            st.download_button(
-                label="📥 Baixar Protocolo PDF",
-                data=pdf,
-                file_name=f"Protocolo_{nf_input}.pdf",
-                mime="application/pdf"
-            )
-        else:
-            st.warning("⚠️ Nota Fiscal não encontrada na base de dados.")
+            # 3. Filtrar Dados
+            resultados = df[df['NOTA FISCAL'].isin(lista_nfs)].to_dict('records')
             
-    except Exception as e:
-        st.error(f"Erro ao conectar com a planilha: {e}")
+            if resultados:
+                pdf_output = gerar_pdf(resultados)
+                st.success(f"Encontrados {len(resultados)} de {len(lista_nfs)} protocolos!")
+                
+                st.download_button(
+                    label="💾 Baixar Arquivo PDF Único",
+                    data=pdf_output,
+                    file_name="protocolos_devolucao.pdf",
+                    mime="application/pdf"
+                )
+            else:
+                st.error("Nenhuma das Notas Fiscais foi encontrada na planilha.")
+        except Exception as e:
+            st.error(f"Erro técnico: {e}")
+    else:
+        st.warning("Digite ao menos um número de nota fiscal.")
