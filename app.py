@@ -51,17 +51,15 @@ def gerar_pdf(dados_lista):
             c.setFont("Helvetica-Bold", 12)
             c.drawString(m_x + 10, p_y - 30, "NEW POST")
         
-        # --- LÓGICA DE PREFIXO POR DESTINO (ALTERAÇÃO SOLICITADA) ---
-        # Pegamos o valor da coluna de destino (ajuste o nome se necessário)
-        destino = str(dados.get('DESTINO', '')).upper() # Assumindo que o nome da coluna 9 seja 'DESTINO'
+        # --- LÓGICA DE PREFIXO ---
+        destino = str(dados.get('DESTINO', '')).upper()
+        # Pegamos o dado da 1ª coluna (mapeada como PROTOCOLO_COL_1)
+        protocolo_da_planilha = str(dados.get('PROTOCOLO_COL_1', ''))
         
-        prefixo = "PROTOCOLO" # Default caso não encontre
         if "CABO DE SANTO AGOSTINHO" in destino:
             prefixo = "PE-"
-        elif "BETIM" in destino:
-            prefixo = "MG-"
         else:
-            prefixo = "MG-" # Mantive MG como padrão caso não seja nenhum dos dois
+            prefixo = "MG-"
 
         c.setFont("Helvetica-Bold", 13)
         c.drawCentredString(largura/2 + 20, p_y - 25, "PROTOCOLO DE DEVOLUÇÃO")
@@ -69,7 +67,7 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica", 9)
         c.drawString(largura - 155, p_y - 15, "PROTOCOLO Nº:")
         
-        # Exibição do Prefixo com o número em branco conforme solicitado
+        # Exibição apenas do Prefixo (Número em branco conforme solicitado)
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"{prefixo}") 
         
@@ -92,12 +90,14 @@ def gerar_pdf(dados_lista):
         
         data_at = datetime.now().strftime("%d/%m/%Y")
         c.drawString(m_x + 5, p_y - 145, "DATA:")
+        c.setFont("Helvetica-Bold", 10)
         c.drawString(m_x + 45, p_y - 144, data_at)
         c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
         
+        # --- AJUSTE SOLICITADO: Exibe a 1ª coluna aqui ---
         c.drawString(largura - 310, p_y - 145, "Nº PROTOCOLO CLIENTE:")
         c.setFont("Helvetica-Bold", 10)
-        c.drawString(largura - 175, p_y - 144, str(dados.get('PEDIDO', '')))
+        c.drawString(largura - 175, p_y - 144, protocolo_da_planilha)
         c.line(largura - 180, p_y - 147, largura - 40, p_y - 147)
         
         # Assinaturas
@@ -108,39 +108,4 @@ def gerar_pdf(dados_lista):
         c.drawCentredString(largura/2 + 40, p_y - 195, "Nome legível e RG")
         
         c.setFont("Helvetica", 10)
-        c.drawString(m_x + 5, p_y - 230, "ASSINATURA:")
-        c.line(m_x + 80, p_y - 232, largura - 40, p_y - 232)
-
-    c.save()
-    buffer.seek(0)
-    return buffer
-
-# --- LOGICA DA INTERFACE ---
-st.title("📦 Gerador de Protocolos")
-
-txt = st.text_area("Insira as NFs abaixo:", height=150)
-
-if st.button("Gerar PDF"):
-    if txt:
-        try:
-            S_ID = "1f_NDUAezh4g0ztyHVUO_t33QxGai9TYcWOD-IAoPcuE"
-            URL = f"https://docs.google.com/spreadsheets/d/{S_ID}/export?format=csv&gid=0"
-            
-            nfs = [n.strip() for n in re.split(r'[,\s\n]+', txt) if n.strip()]
-            df = pd.read_csv(URL)
-            
-            # Mapeamento da Coluna 9 (Índice 8 em Python)
-            # Vamos renomear para 'DESTINO' para facilitar a leitura no código
-            df.columns.values[8] = 'DESTINO' 
-            
-            df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
-            res = df[df['NOTA FISCAL'].isin(nfs)].to_dict('records')
-            
-            if res:
-                pdf = gerar_pdf(res)
-                st.success(f"{len(res)} protocolos gerados!")
-                st.download_button("📥 Baixar PDF", pdf, "protocolos.pdf", "application/pdf")
-            else:
-                st.error("Nenhuma NF encontrada.")
-        except Exception as e:
-            st.error(f"Erro técnico: {e}")
+        c.drawString(m_x +
