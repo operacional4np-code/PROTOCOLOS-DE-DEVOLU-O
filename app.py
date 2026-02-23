@@ -8,7 +8,7 @@ from datetime import datetime
 import re
 import os
 
-# 1. Configuração inicial
+# --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Sistema New Post", page_icon="📦")
 
 # --- FUNÇÃO DE GERAÇÃO DE PDF ---
@@ -32,7 +32,7 @@ def gerar_pdf(dados_lista):
             
         p_y = y_ini - ((i % 3) * (h_bloco + espac))
         
-        # Moldura e Cabeçalho
+        # Moldura
         c.setLineWidth(1.5)
         c.rect(m_x, p_y - h_bloco, largura - 60, h_bloco)
         c.setLineWidth(1)
@@ -51,15 +51,11 @@ def gerar_pdf(dados_lista):
             c.setFont("Helvetica-Bold", 12)
             c.drawString(m_x + 10, p_y - 30, "NEW POST")
         
-        # --- LÓGICA DE PREFIXO ---
+        # Lógica de Prefixo
         destino = str(dados.get('DESTINO', '')).upper()
-        # Pegamos o valor da 1ª coluna mapeada
         protocolo_fonte = str(dados.get('PROTOCOLO_FONTE', ''))
         
-        if "CABO DE SANTO AGOSTINHO" in destino:
-            prefixo = "PE-"
-        else:
-            prefixo = "MG-"
+        prefixo = "PE-" if "CABO DE SANTO AGOSTINHO" in destino else "MG-"
 
         c.setFont("Helvetica-Bold", 13)
         c.drawCentredString(largura/2 + 20, p_y - 25, "PROTOCOLO DE DEVOLUÇÃO")
@@ -67,11 +63,10 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica", 9)
         c.drawString(largura - 155, p_y - 15, "PROTOCOLO Nº:")
         
-        # Prefixo no topo (Número em branco conforme solicitado)
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"{prefixo}") 
         
-        # --- DADOS DO CLIENTE E NOTA ---
+        # Dados Cliente
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 65, "CLIENTE:")
         c.setFont("Helvetica-Bold", 10)
@@ -84,7 +79,6 @@ def gerar_pdf(dados_lista):
         c.drawString(m_x + 95, p_y - 104, str(dados.get('NOTA FISCAL', '')))
         c.line(m_x + 90, p_y - 107, largura - 320, p_y - 107)
         
-        c.setFont("Helvetica", 10)
         c.drawString(largura - 310, p_y - 105, "Nº CTE:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(largura - 265, p_y - 104, str(dados.get('CTE', '')))
@@ -96,3 +90,6 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica-Bold", 10)
         c.drawString(m_x + 45, p_y - 144, data_at)
         c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
+        
+        # Nº PROTOCOLO CLIENTE (1ª COLUNA)
+        c.setFont("
