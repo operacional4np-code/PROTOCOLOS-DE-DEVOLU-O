@@ -95,4 +95,4 @@ def gerar_pdf(dados_lista):
         c.drawString(m_x + 5, p_y - 145, "DATA:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(m_x + 45, p_y - 144, data_at)
-        c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147
+        c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
