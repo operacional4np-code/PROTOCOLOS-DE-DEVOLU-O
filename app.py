@@ -8,7 +8,7 @@ from datetime import datetime
 import re
 import os
 
-# 1. Configuração inicial (Deve ser a primeira chamada Streamlit)
+# 1. Configuração inicial
 st.set_page_config(page_title="Sistema New Post", page_icon="📦")
 
 # --- FUNÇÃO DE GERAÇÃO DE PDF ---
@@ -21,7 +21,14 @@ def gerar_pdf(dados_lista):
     h_bloco = 255
     espac = 15
     y_ini = altura - 30
-    logo_path = "logo.png.jpeg" 
+    
+    # Tentativa de encontrar o logo com diferentes nomes possíveis
+    caminhos_possiveis = ["logo.png.jpeg", "logo.png", "logo.jpeg", "logo.jpg"]
+    logo_path = None
+    for caminho in caminhos_possiveis:
+        if os.path.exists(caminho):
+            logo_path = caminho
+            break
 
     for i, dados in enumerate(dados_lista):
         if i > 0 and i % 3 == 0:
@@ -30,23 +37,30 @@ def gerar_pdf(dados_lista):
             
         p_y = y_ini - ((i % 3) * (h_bloco + espac))
         
+        # Moldura externa
         c.setLineWidth(1.5)
         c.rect(m_x, p_y - h_bloco, largura - 60, h_bloco)
+        
+        # Linhas do cabeçalho
         c.setLineWidth(1)
         c.line(m_x, p_y - 45, largura - 30, p_y - 45) 
         c.line(largura - 160, p_y, largura - 160, p_y - 45) 
         
-        if os.path.exists(logo_path):
+        # --- INSERÇÃO DO LOGO CORRIGIDA ---
+        if logo_path:
             try:
                 img = ImageReader(logo_path)
-                c.drawImage(img, m_x + 5, p_y - 40, width=65, height=35, preserveAspectRatio=True, mask='auto')
-            except:
+                # Ajuste de posição para o canto superior esquerdo do bloco
+                c.drawImage(img, m_x + 10, p_y - 38, width=60, height=30, preserveAspectRatio=True, mask='auto')
+            except Exception as e:
+                # Se der erro na leitura da imagem, coloca o texto
                 c.setFont("Helvetica-Bold", 12)
                 c.drawString(m_x + 10, p_y - 30, "NEW POST")
         else:
             c.setFont("Helvetica-Bold", 12)
             c.drawString(m_x + 10, p_y - 30, "NEW POST")
         
+        # Títulos e Protocolo
         c.setFont("Helvetica-Bold", 13)
         c.drawCentredString(largura/2 + 20, p_y - 25, "PROTOCOLO DE DEVOLUÇÃO")
         c.setFont("Helvetica", 9)
@@ -54,6 +68,7 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"MG-{str(dados.get('PROTOCOLO', ''))}")
         
+        # Dados do Formulário
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 65, "CLIENTE:")
         c.setFont("Helvetica-Bold", 10)
@@ -80,6 +95,8 @@ def gerar_pdf(dados_lista):
         c.drawString(largura - 175, p_y - 144, str(dados.get('PEDIDO', '')))
         c.line(largura - 180, p_y - 147, largura - 40, p_y - 147)
         
+        # Rodapé e Assinaturas
+        c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 185, "DADOS DO RECEBEDOR:")
         c.line(m_x + 125, p_y - 187, largura - 40, p_y - 187)
         c.setFont("Helvetica", 7)
@@ -93,20 +110,17 @@ def gerar_pdf(dados_lista):
     buffer.seek(0)
     return buffer
 
-# --- LOGICA DA INTERFACE (LINEAR) ---
+# --- LOGICA DA INTERFACE ---
 st.title("📦 Gerador de Protocolos")
-st.write("Digite as NFs abaixo (separadas por vírgula ou espaço):")
 
-txt = st.text_area("Notas Fiscais:", height=150)
+txt = st.text_area("Insira as NFs abaixo (uma por linha ou separadas por vírgula):", height=150)
 
 if st.button("Gerar PDF"):
     if txt:
         try:
-            # Configurações da Planilha
             S_ID = "1f_NDUAezh4g0ztyHVUO_t33QxGai9TYcWOD-IAoPcuE"
             URL = f"https://docs.google.com/spreadsheets/d/{S_ID}/export?format=csv&gid=0"
             
-            # Processamento
             nfs = [n.strip() for n in re.split(r'[,\s\n]+', txt) if n.strip()]
             df = pd.read_csv(URL)
             df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
@@ -114,7 +128,7 @@ if st.button("Gerar PDF"):
             
             if res:
                 pdf = gerar_pdf(res)
-                st.success(f"{len(res)} protocolos encontrados!")
+                st.success(f"{len(res)} protocolos gerados!")
                 st.download_button("📥 Baixar PDF", pdf, "protocolos.pdf", "application/pdf")
             else:
                 st.error("Nenhuma NF encontrada na planilha.")
