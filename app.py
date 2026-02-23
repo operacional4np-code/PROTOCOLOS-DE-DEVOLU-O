@@ -100,3 +100,4 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 230, "ASSINATURA:")
         c.line(m_x + 80, p_y - 23)
+main()
