@@ -109,4 +109,3 @@ def gerar_pdf(dados_lista):
         
         c.setFont("Helvetica", 10)
         c.drawString(m_x +)
-    
