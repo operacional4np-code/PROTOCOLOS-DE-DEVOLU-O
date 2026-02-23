@@ -53,8 +53,8 @@ def gerar_pdf(dados_lista):
         
         # --- LÓGICA DE PREFIXO ---
         destino = str(dados.get('DESTINO', '')).upper()
-        # Pegamos o dado da 1ª coluna (mapeada como PROTOCOLO_COL_1)
-        protocolo_da_planilha = str(dados.get('PROTOCOLO_COL_1', ''))
+        # Dado da 1ª coluna da planilha
+        protocolo_fonte = str(dados.get('PROTOCOLO_FONTE', ''))
         
         if "CABO DE SANTO AGOSTINHO" in destino:
             prefixo = "PE-"
@@ -67,7 +67,7 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica", 9)
         c.drawString(largura - 155, p_y - 15, "PROTOCOLO Nº:")
         
-        # Exibição apenas do Prefixo (Número em branco conforme solicitado)
+        # PROTOCOLO Nº permanece apenas com o prefixo (em branco para preenchimento manual)
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"{prefixo}") 
         
@@ -94,10 +94,10 @@ def gerar_pdf(dados_lista):
         c.drawString(m_x + 45, p_y - 144, data_at)
         c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
         
-        # --- AJUSTE SOLICITADO: Exibe a 1ª coluna aqui ---
+        # Nº PROTOCOLO CLIENTE exibe o resultado da PRIMEIRA COLUNA
         c.drawString(largura - 310, p_y - 145, "Nº PROTOCOLO CLIENTE:")
         c.setFont("Helvetica-Bold", 10)
-        c.drawString(largura - 175, p_y - 144, protocolo_da_planilha)
+        c.drawString(largura - 175, p_y - 144, protocolo_fonte)
         c.line(largura - 180, p_y - 147, largura - 40, p_y - 147)
         
         # Assinaturas
@@ -108,4 +108,4 @@ def gerar_pdf(dados_lista):
         c.drawCentredString(largura/2 + 40, p_y - 195, "Nome legível e RG")
         
         c.setFont("Helvetica", 10)
-        c.drawString(m_x +)
+        c.drawString(
