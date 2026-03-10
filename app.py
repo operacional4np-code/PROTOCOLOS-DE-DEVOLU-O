@@ -6,9 +6,9 @@ from reportlab.lib.utils import ImageReader
 import io
 import re
 import os
-from datetime import datetime  # Importação movida para o topo
+from datetime import datetime
 
-# --- CONFIGURAÇÃO DA PÁGINA (DEVE SER O PRIMEIRO COMANDO ST) ---
+# --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Sistema New Post", page_icon="📦")
 
 # --- FUNÇÃO DE GERAÇÃO DE PDF ---
@@ -69,6 +69,7 @@ def gerar_pdf(dados_lista):
         c.drawString(m_x + 60, p_y - 64, str(dados.get('NOME', '')))
         c.line(m_x + 55, p_y - 67, largura - 40, p_y - 67)
         
+        # Exibição das Notas
         notas_texto = str(dados.get('NOTA FISCAL', ''))
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 105, "Nº NOTA FISCAL:")
@@ -121,21 +122,25 @@ def main():
                 nfs_digitadas = [n.strip() for n in re.split(r'[,\s\n]+', txt) if n.strip()]
                 df = pd.read_csv(URL)
                 
-                # Nomeação forçada de colunas
                 df.columns.values[0] = 'PROTOCOLO_FONTE'
                 if len(df.columns) >= 9:
                     df.columns.values[8] = 'DESTINO'
                 
+                # Garantir que tudo é string para a busca de texto
                 df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
                 df['PROTOCOLO_FONTE'] = df['PROTOCOLO_FONTE'].astype(str).str.strip()
 
-                # Busca todos os protocolos relacionados às NFs digitadas
-                protocolos_alvo = df[df['NOTA FISCAL'].isin(nfs_digitadas)]['PROTOCOLO_FONTE'].unique()
+                # --- AJUSTE NA BUSCA: "Contém" em vez de "Igual" ---
+                # Criamos um padrão de busca com as NFs digitadas (ex: 5609549|5609550)
+                padrao_busca = '|'.join(nfs_digitadas)
+                
+                # Filtra as linhas onde a coluna 'NOTA FISCAL' contém qualquer uma das digitadas
+                mascara = df['NOTA FISCAL'].str.contains(padrao_busca, na=False, regex=True)
+                protocolos_alvo = df[mascara]['PROTOCOLO_FONTE'].unique()
 
                 if len(protocolos_alvo) > 0:
                     df_filtrado = df[df['PROTOCOLO_FONTE'].isin(protocolos_alvo)].copy()
 
-                    # Agrupamento para unir as notas do mesmo protocolo
                     df_agrupado = df_filtrado.groupby('PROTOCOLO_FONTE').agg({
                         'NOME': 'first',
                         'DESTINO': 'first',
@@ -154,7 +159,7 @@ def main():
                         mime="application/pdf"
                     )
                 else:
-                    st.warning("Nenhuma NF encontrada.")
+                    st.warning("Nenhuma NF encontrada. Verifique se o número está correto.")
             except Exception as e:
                 st.error(f"Erro no processamento: {e}")
         else:
