@@ -1,3 +1,4 @@
+import streamlit as st
 import pandas as pd
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -5,8 +6,9 @@ from reportlab.lib.utils import ImageReader
 import io
 import re
 import os
+from datetime import datetime  # Importação movida para o topo
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
+# --- CONFIGURAÇÃO DA PÁGINA (DEVE SER O PRIMEIRO COMANDO ST) ---
 st.set_page_config(page_title="Sistema New Post", page_icon="📦")
 
 # --- FUNÇÃO DE GERAÇÃO DE PDF ---
@@ -49,7 +51,6 @@ def gerar_pdf(dados_lista):
             c.setFont("Helvetica-Bold", 12)
             c.drawString(m_x + 10, p_y - 30, "NEW POST")
         
-        # Lógica de Prefixo e Destino
         destino = str(dados.get('DESTINO', '')).upper()
         protocolo_fonte = str(dados.get('PROTOCOLO_FONTE', ''))
         prefixo = "PE-" if "CABO DE SANTO AGOSTINHO" in destino else "MG-"
@@ -62,20 +63,17 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"{prefixo}") 
         
-        # Dados Cliente
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 65, "CLIENTE:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(m_x + 60, p_y - 64, str(dados.get('NOME', '')))
         c.line(m_x + 55, p_y - 67, largura - 40, p_y - 67)
         
-        # --- AJUSTE DE NOTAS FISCAIS ---
         notas_texto = str(dados.get('NOTA FISCAL', ''))
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 105, "Nº NOTA FISCAL:")
         
-        # Se houver muitas notas, diminui a fonte para não bater no CTE
-        tamanho_fonte_notas = 10 if len(notas_texto) < 25 else 8
+        tamanho_fonte_notas = 10 if len(notas_texto) < 30 else 8
         c.setFont("Helvetica-Bold", tamanho_fonte_notas)
         c.drawString(m_x + 95, p_y - 104, notas_texto)
         c.line(m_x + 90, p_y - 107, largura - 320, p_y - 107)
@@ -86,7 +84,6 @@ def gerar_pdf(dados_lista):
         c.drawString(largura - 265, p_y - 104, str(dados.get('CTE', '')))
         c.line(largura - 270, p_y - 107, largura - 40, p_y - 107)
         
-        # Campos Vazios / Protocolo Cliente
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 145, "DATA:")
         c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
@@ -96,7 +93,6 @@ def gerar_pdf(dados_lista):
         c.drawString(largura - 175, p_y - 144, protocolo_fonte)
         c.line(largura - 180, p_y - 147, largura - 40, p_y - 147)
         
-        # Assinaturas
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 185, "DADOS DO RECEBEDOR:")
         c.line(m_x + 125, p_y - 187, largura - 40, p_y - 187)
@@ -114,60 +110,55 @@ def gerar_pdf(dados_lista):
 # --- INTERFACE PRINCIPAL ---
 def main():
     st.title("📦 Gerador de Protocolos")
-    txt = st.text_area("Insira os números das NFs (uma por linha ou separadas por espaço/vírgula):", height=150)
+    txt = st.text_area("Insira as NFs (separadas por espaço, vírgula ou linha):", height=150)
 
     if st.button("Gerar PDF"):
         if txt:
             try:
-                # Configurações da Planilha
                 S_ID = "1f_NDUAezh4g0ztyHVUO_t33QxGai9TYcWOD-IAoPcuE"
                 URL = f"https://docs.google.com/spreadsheets/d/{S_ID}/export?format=csv&gid=0"
                 
                 nfs_digitadas = [n.strip() for n in re.split(r'[,\s\n]+', txt) if n.strip()]
                 df = pd.read_csv(URL)
                 
-                # Identificação de colunas por índice para evitar erros de nome
+                # Nomeação forçada de colunas
                 df.columns.values[0] = 'PROTOCOLO_FONTE'
                 if len(df.columns) >= 9:
                     df.columns.values[8] = 'DESTINO'
                 
-                # Limpeza de dados
                 df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
                 df['PROTOCOLO_FONTE'] = df['PROTOCOLO_FONTE'].astype(str).str.strip()
 
-                # --- LÓGICA DE CAPTURA DE MÚLTIPLAS NOTAS ---
-                # 1. Encontrar quais são os números de protocolos das NFs informadas
+                # Busca todos os protocolos relacionados às NFs digitadas
                 protocolos_alvo = df[df['NOTA FISCAL'].isin(nfs_digitadas)]['PROTOCOLO_FONTE'].unique()
 
                 if len(protocolos_alvo) > 0:
-                    # 2. Selecionar todas as linhas que possuem esses protocolos (traz as notas "irmãs")
                     df_filtrado = df[df['PROTOCOLO_FONTE'].isin(protocolos_alvo)].copy()
 
-                    # 3. Agrupar os dados para que cada protocolo vire apenas 1 bloco no PDF
+                    # Agrupamento para unir as notas do mesmo protocolo
                     df_agrupado = df_filtrado.groupby('PROTOCOLO_FONTE').agg({
                         'NOME': 'first',
                         'DESTINO': 'first',
                         'CTE': 'first',
-                        'NOTA FISCAL': lambda x: ' / '.join(sorted(set(x))) # Une as notas: "101 / 102"
+                        'NOTA FISCAL': lambda x: ' / '.join(sorted(set(x)))
                     }).reset_index()
                     
                     res = df_agrupado.to_dict('records')
-                    
                     pdf_file = gerar_pdf(res)
-                    st.success(f"Foram encontrados {len(res)} pedidos vinculados às NFs informadas.")
+                    
+                    st.success(f"Encontrado(s) {len(res)} pedido(s).")
                     st.download_button(
-                        label="📥 Baixar PDF de Protocolos",
+                        label="📥 Baixar PDF",
                         data=pdf_file,
-                        file_name=f"protocolos_{datetime.now().strftime('%d_%m_%H%M')}.pdf",
+                        file_name=f"protocolos_{datetime.now().strftime('%d_%m_%H%M%S')}.pdf",
                         mime="application/pdf"
                     )
                 else:
-                    st.warning("Nenhuma Nota Fiscal correspondente foi encontrada na planilha.")
+                    st.warning("Nenhuma NF encontrada.")
             except Exception as e:
-                st.error(f"Erro ao processar a planilha: {e}")
+                st.error(f"Erro no processamento: {e}")
         else:
-            st.info("Por favor, digite ao menos um número de Nota Fiscal.")
+            st.info("Insira as NFs para continuar.")
 
 if __name__ == "__main__":
-    from datetime import datetime
     main()
