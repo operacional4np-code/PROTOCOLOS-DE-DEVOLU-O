@@ -4,7 +4,6 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 import io
-from datetime import datetime
 import re
 import os
 
@@ -63,7 +62,6 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica", 9)
         c.drawString(largura - 155, p_y - 15, "PROTOCOLO Nº:")
         
-        # PROTOCOLO Nº permanece apenas com o prefixo
         c.setFont("Helvetica-Bold", 11)
         c.drawString(largura - 130, p_y - 32, f"{prefixo}") 
         
@@ -77,6 +75,7 @@ def gerar_pdf(dados_lista):
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 105, "Nº NOTA FISCAL:")
         c.setFont("Helvetica-Bold", 10)
+        # O campo nota agora pode conter múltiplas notas separadas por vírgula
         c.drawString(m_x + 95, p_y - 104, str(dados.get('NOTA FISCAL', '')))
         c.line(m_x + 90, p_y - 107, largura - 320, p_y - 107)
         
@@ -85,20 +84,16 @@ def gerar_pdf(dados_lista):
         c.drawString(largura - 265, p_y - 104, str(dados.get('CTE', '')))
         c.line(largura - 270, p_y - 107, largura - 40, p_y - 107)
         
-        # --- AJUSTE: CAMPO DATA EM BRANCO ---
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 145, "DATA:")
-        # Removido: data_at e drawString da data automática
         c.line(m_x + 40, p_y - 147, largura - 320, p_y - 147)
         
-        # Nº PROTOCOLO CLIENTE (1ª COLUNA)
         c.setFont("Helvetica", 10)
         c.drawString(largura - 310, p_y - 145, "Nº PROTOCOLO CLIENTE:")
         c.setFont("Helvetica-Bold", 10)
         c.drawString(largura - 175, p_y - 144, protocolo_fonte)
         c.line(largura - 180, p_y - 147, largura - 40, p_y - 147)
         
-        # Assinaturas
         c.setFont("Helvetica", 10)
         c.drawString(m_x + 5, p_y - 185, "DADOS DO RECEBEDOR:")
         c.line(m_x + 125, p_y - 187, largura - 40, p_y - 187)
@@ -116,7 +111,7 @@ def gerar_pdf(dados_lista):
 # --- INTERFACE PRINCIPAL ---
 def main():
     st.title("📦 Gerador de Protocolos")
-    txt = st.text_area("Insira as NFs abaixo:", height=150)
+    txt = st.text_area("Insira as NFs abaixo (uma por linha ou separadas por vírgula):", height=150)
 
     if st.button("Gerar PDF"):
         if txt:
@@ -127,18 +122,33 @@ def main():
                 nfs_entrada = [n.strip() for n in re.split(r'[,\s\n]+', txt) if n.strip()]
                 df = pd.read_csv(URL)
                 
+                # Renomear colunas para garantir consistência
                 df.columns.values[0] = 'PROTOCOLO_FONTE'
                 if len(df.columns) >= 9:
                     df.columns.values[8] = 'DESTINO'
                 
+                # Limpeza básica
                 df['NOTA FISCAL'] = df['NOTA FISCAL'].astype(str).str.strip()
                 df['PROTOCOLO_FONTE'] = df['PROTOCOLO_FONTE'].astype(str).str.strip()
                 
-                res = df[df['NOTA FISCAL'].isin(nfs_entrada)].to_dict('records')
+                # 1. Filtrar as linhas que contêm as NFs digitadas
+                df_filtrado = df[df['NOTA FISCAL'].isin(nfs_entrada)].copy()
                 
-                if res:
+                if not df_filtrado.empty:
+                    # 2. AGRUPAMENTO: Se o mesmo PROTOCOLO_FONTE tiver várias NFs, junta elas
+                    # Isso garante que 2 notas do mesmo pedido fiquem no mesmo protocolo
+                    df_agrupado = df_filtrado.groupby('PROTOCOLO_FONTE').agg({
+                        'NOME': 'first',
+                        'DESTINO': 'first',
+                        'CTE': 'first',
+                        'NOTA FISCAL': lambda x: ', '.join(sorted(set(x))) # Junta as notas únicas
+                    }).reset_index()
+                    
+                    # Transformar em lista de dicionários para o PDF
+                    res = df_agrupado.to_dict('records')
+                    
                     pdf_file = gerar_pdf(res)
-                    st.success(f"{len(res)} protocolos gerados!")
+                    st.success(f"{len(res)} protocolos gerados (agrupados por pedido)!")
                     st.download_button(
                         label="📥 Baixar PDF",
                         data=pdf_file,
@@ -146,9 +156,9 @@ def main():
                         mime="application/pdf"
                     )
                 else:
-                    st.warning("Nenhuma NF encontrada.")
+                    st.warning("Nenhuma NF encontrada na base de dados.")
             except Exception as e:
-                st.error(f"Erro: {e}")
+                st.error(f"Erro ao processar os dados: {e}")
         else:
             st.info("Insira os números das Notas Fiscais para continuar.")
 
